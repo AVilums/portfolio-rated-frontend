@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
@@ -17,15 +17,25 @@ beforeEach(() => {
     vi.mocked(auth.getSession).mockResolvedValue(account);
     return account;
   });
+  vi.mocked(auth.signUp).mockImplementation(async () => {
+    vi.mocked(auth.getSession).mockResolvedValue(account);
+    return account;
+  });
   vi.mocked(auth.signOut).mockResolvedValue();
   vi.mocked(portfolioApi.getLatestReport).mockResolvedValue(null);
   vi.mocked(portfolioApi.analysePortfolio).mockResolvedValue(report);
 });
 
+async function openLogin(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByRole('heading', { name: 'See how concentrated your portfolio really is.' });
+  await user.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Log in' }));
+  await screen.findByRole('heading', { name: 'Sign in' });
+}
+
 async function login() {
   const user = userEvent.setup();
   render(<App />);
-  await screen.findByRole('heading', { name: 'Sign in' });
+  await openLogin(user);
   await user.type(screen.getByLabelText('Email'), 'demo@example.com');
   await user.type(screen.getByLabelText('Password'), 'placeholder');
   await user.click(screen.getByRole('button', { name: 'Sign in' }));
@@ -43,10 +53,34 @@ async function fillPosition(
 }
 
 describe('portfolio flow', () => {
+  it('opens sign-in and sign-up from the homepage header', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'See how concentrated your portfolio really is.' });
+    const header = within(screen.getByRole('banner'));
+    await user.click(header.getByRole('button', { name: 'Sign up' }));
+    expect(await screen.findByRole('heading', { name: 'Create your account' })).toHaveFocus();
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toHaveFocus();
+  });
+
+  it('creates an account and starts the portfolio flow', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'See how concentrated your portfolio really is.' });
+    await user.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Sign up' }));
+    await user.type(screen.getByLabelText('Email'), 'new@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(await screen.findByRole('heading', { name: 'Portfolio input' })).toHaveFocus();
+    expect(auth.signUp).toHaveBeenCalledWith('new@example.com', 'a-secure-password');
+  });
+
   it('requires login inputs and passes credentials to the API', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByRole('heading', { name: 'Sign in' });
+    await openLogin(user);
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(auth.signIn).not.toHaveBeenCalled();
     await user.type(screen.getByLabelText('Email'), 'demo@example.com');
@@ -109,7 +143,11 @@ describe('portfolio flow', () => {
     expect(screen.getByLabelText('Asset symbol 1')).toHaveValue('AVWC');
     expect(screen.getByLabelText('Allocation (%) 2')).toHaveValue(40);
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'See how concentrated your portfolio really is.',
+      }),
+    ).toBeInTheDocument();
     expect(auth.signOut).toHaveBeenCalledOnce();
   });
 
@@ -126,7 +164,11 @@ describe('portfolio flow', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Try again' }));
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'See how concentrated your portfolio really is.',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('limits the portfolio to 20 positions', async () => {
@@ -161,7 +203,8 @@ describe('portfolio flow', () => {
     vi.mocked(auth.signIn).mockRejectedValueOnce(new ApiError(401));
     const user = userEvent.setup();
     render(<App />);
-    await user.type(await screen.findByLabelText('Email'), 'demo@example.com');
+    await openLogin(user);
+    await user.type(screen.getByLabelText('Email'), 'demo@example.com');
     await user.type(screen.getByLabelText('Password'), 'placeholder');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Email or password is incorrect');

@@ -1,6 +1,6 @@
 # Portfolio Rated
 
-React + TypeScript frontend for Login → Portfolio → Report.
+React + TypeScript frontend for Home → Sign up/Login → Portfolio → Report.
 
 ## Run the full app
 
@@ -27,10 +27,12 @@ The production frontend is served by nginx with the same API paths.
 
 ## Structure
 
-- `src/App.tsx`: session restoration and three views using React state.
+- `src/App.tsx`: session restoration and view coordination using React state.
+- `src/components/AppLayout.tsx`: shared header and centered workflow progress.
 - `src/api/client.ts`: fetch, request timeout, cookie credentials and error boundary.
 - `src/api/portfolio.ts`: portfolio API calls and runtime response validation.
-- `src/features/auth/`: sign-in UI and session API.
+- `src/features/home/`: public single-page landing screen.
+- `src/features/auth/`: sign-in/sign-up UI and session API.
 - `src/features/portfolio/`: input, report, TypeScript contract and Zod validation.
 - `src/config.ts`: public browser configuration.
 - `tests/`: component and API-boundary tests.
@@ -38,7 +40,7 @@ The production frontend is served by nginx with the same API paths.
 
 There is no client-side auth token storage, mock authentication, router dependency
 or global state library. Reloading restores the latest saved report from the API;
-unsaved edits are kept only in memory. The three views do not have separate URLs.
+unsaved edits are kept only in memory. The views do not have separate URLs.
 
 The report shows actual allocation statistics calculated by the backend. It does
 not display invented risk ratings or inferred market exposure.

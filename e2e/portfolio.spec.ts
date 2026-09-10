@@ -4,6 +4,10 @@ test('sign in, save, refresh, edit and sign out', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'See how concentrated your portfolio really is.' }),
+  ).toBeVisible();
+  await page.getByRole('banner').getByRole('button', { name: 'Log in' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.screenshot({ path: 'test-results/login-desktop.png', fullPage: true });
   await page.getByLabel('Email').fill(process.env.INITIAL_EMAIL ?? 'demo@example.com');
@@ -38,5 +42,7 @@ test('sign in, save, refresh, edit and sign out', async ({ page }) => {
   await page.screenshot({ path: 'test-results/portfolio-mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'See how concentrated your portfolio really is.' }),
+  ).toBeVisible();
 });

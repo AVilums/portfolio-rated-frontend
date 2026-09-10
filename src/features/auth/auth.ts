@@ -9,6 +9,11 @@ export async function signIn(email: string, password: string): Promise<User> {
     await request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   );
 }
+export async function signUp(email: string, password: string): Promise<User> {
+  return userSchema.parse(
+    await request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  );
+}
 export async function getSession(signal?: AbortSignal): Promise<User | null> {
   try {
     return userSchema.parse(await request('/auth/session', { signal }));
