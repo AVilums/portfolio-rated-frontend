@@ -1,75 +1,63 @@
-# React + TypeScript + Vite
+# Portfolio Rated
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript frontend for Login → Portfolio → Report.
 
-Currently, two official plugins are available:
+## Run the full app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+With this repository beside `portfolio-rated-backend`:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+docker compose -f ../portfolio-rated-backend/docker-compose.yml up --build -d
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Open http://localhost:8080. Local login:
+`demo@example.com` / `local-portfolio-password`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Frontend development
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Keep the Compose API running, then:
 
+```sh
+npm ci
+npm run dev
 ```
+
+Node 24 is used by the Docker build. Vite proxies `/api` to localhost:8000.
+The production frontend is served by nginx with the same API paths.
+
+## Structure
+
+- `src/App.tsx`: session restoration and three views using React state.
+- `src/api/client.ts`: fetch, request timeout, cookie credentials and error boundary.
+- `src/api/portfolio.ts`: portfolio API calls and runtime response validation.
+- `src/features/auth/`: sign-in UI and session API.
+- `src/features/portfolio/`: input, report, TypeScript contract and Zod validation.
+- `src/config.ts`: public browser configuration.
+- `tests/`: component and API-boundary tests.
+- `e2e/`: Playwright test against the built Compose application.
+
+There is no client-side auth token storage, mock authentication, router dependency
+or global state library. Reloading restores the latest saved report from the API;
+unsaved edits are kept only in memory. The three views do not have separate URLs.
+
+The report shows actual allocation statistics calculated by the backend. It does
+not display invented risk ratings or inferred market exposure.
+
+## Quality gates
+
+```sh
+npm run lint
+npm run format:check
+npm run test:run
+npm run build
+```
+
+With Compose running:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+Playwright is a development dependency only. The browser test saves a report in
+the local account, verifies refresh persistence and checks a mobile viewport.
