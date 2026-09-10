@@ -1,0 +1,7 @@
+`npm run lint`
+
+`npm run format:check`
+
+`npm run test:run`
+
+`npm run build`
