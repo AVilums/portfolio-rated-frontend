@@ -11,22 +11,26 @@ describe('API boundary', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     await expect(
-      analysePortfolio({ positions: [{ ticker: 'AVWC', allocation: 90 }] }),
+      analysePortfolio({ positions: [{ ticker: 'AVWC', allocation: 90, average_price: 10 }] }),
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
   it('sends normalized data and the CSRF header using same-origin credentials', async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(report)));
     vi.stubGlobal('fetch', fetch);
-    expect(await analysePortfolio({ positions: [{ ticker: 'avwc', allocation: 100 }] })).toEqual(
-      report,
-    );
+    expect(
+      await analysePortfolio({
+        positions: [{ ticker: 'qqq', allocation: 100, average_price: 500 }],
+      }),
+    ).toEqual(report);
     expect(fetch).toHaveBeenCalledWith(
       '/api/v1/portfolio/analyse',
       expect.objectContaining({
         method: 'POST',
         credentials: 'same-origin',
-        body: JSON.stringify({ positions: [{ ticker: 'AVWC', allocation: 100 }] }),
+        body: JSON.stringify({
+          positions: [{ ticker: 'QQQ', allocation: 100, average_price: 500 }],
+        }),
         headers: expect.objectContaining({ 'X-Requested-With': 'PortfolioRated' }),
       }),
     );
@@ -58,18 +62,30 @@ describe('portfolio validation', () => {
   it('accepts exact decimal totals and normalizes symbols', () => {
     const result = portfolioSchema.parse({
       positions: [
-        { ticker: ' avwc ', allocation: 33.33 },
-        { ticker: 'AVWS', allocation: 33.33 },
-        { ticker: 'AVEM', allocation: 33.34 },
+        { ticker: ' qqq ', allocation: 33.33, average_price: 100 },
+        { ticker: 'VTI', allocation: 33.33, average_price: 200 },
+        { ticker: 'VXUS', allocation: 33.34, average_price: 50 },
       ],
     });
-    expect(result.positions[0].ticker).toBe('AVWC');
+    expect(result.positions[0].ticker).toBe('QQQ');
   });
   it.each([NaN, Infinity, -Infinity, 99.999, 0])(
     'rejects invalid numeric input %s',
     (allocation) => {
       expect(
-        portfolioSchema.safeParse({ positions: [{ ticker: 'AVWC', allocation }] }).success,
+        portfolioSchema.safeParse({
+          positions: [{ ticker: 'QQQ', allocation, average_price: 100 }],
+        }).success,
+      ).toBe(false);
+    },
+  );
+  it.each([NaN, Infinity, -1, 0, 1.123456789])(
+    'rejects invalid average price %s',
+    (average_price) => {
+      expect(
+        portfolioSchema.safeParse({
+          positions: [{ ticker: 'QQQ', allocation: 100, average_price }],
+        }).success,
       ).toBe(false);
     },
   );

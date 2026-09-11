@@ -2,17 +2,23 @@
 import { ApiError } from '../../api/client';
 import { analysePortfolio } from '../../api/portfolio';
 import { MAX_POSITIONS, allocationUnits, portfolioSchema } from './schemas';
-import type { PortfolioAnalysisResponse, PortfolioPosition } from './types';
+import type { PortfolioAnalysisResponse, PortfolioPosition, SavedPortfolioPosition } from './types';
 
 interface Props {
-  initialPositions: PortfolioPosition[];
+  initialPositions: SavedPortfolioPosition[];
   onAnalysed: (positions: PortfolioPosition[], report: PortfolioAnalysisResponse) => void;
 }
 export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
   const [rows, setRows] = useState(() =>
-    (initialPositions.length ? initialPositions : [{ ticker: '', allocation: '' }]).map(
-      (position, id) => ({ id, ticker: position.ticker, allocation: String(position.allocation) }),
-    ),
+    (initialPositions.length
+      ? initialPositions
+      : [{ ticker: '', allocation: '', average_price: '' }]
+    ).map((position, id) => ({
+      id,
+      ticker: position.ticker,
+      allocation: String(position.allocation),
+      average_price: position.average_price == null ? '' : String(position.average_price),
+    })),
   );
   const active = useRef(true);
   useEffect(() => {
@@ -27,9 +33,10 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const parsed = portfolioSchema.safeParse({
-    positions: rows.map(({ ticker, allocation }) => ({
+    positions: rows.map(({ ticker, allocation, average_price }) => ({
       ticker,
       allocation: allocation.trim() === '' ? NaN : Number(allocation),
+      average_price: average_price.trim() === '' ? NaN : Number(average_price),
     })),
   });
   const total =
@@ -48,7 +55,7 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
     submitted && !parsed.success
       ? parsed.error.issues.find((issue) => issue.path.length === 1)?.message
       : undefined;
-  function update(id: number, field: 'ticker' | 'allocation', value: string) {
+  function update(id: number, field: 'ticker' | 'allocation' | 'average_price', value: string) {
     setRows((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
     setError('');
   }
@@ -59,7 +66,8 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
     <section>
       <h1 tabIndex={-1}>Portfolio input</h1>
       <p className="intro">
-        Add your assets and their share of the portfolio. Allocations must total 100%.
+        Add your ETFs, their share of the portfolio and your average purchase price. Allocations
+        must total 100%.
       </p>
       <form
         ref={form}
@@ -106,14 +114,14 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
                 </span>
                 <div className="field">
                   <label htmlFor={`ticker-${row.id}`}>
-                    Asset symbol <span className="sr-only">{index + 1}</span>
+                    ETF ticker <span className="sr-only">{index + 1}</span>
                   </label>
                   <input
                     id={`ticker-${row.id}`}
                     value={row.ticker}
                     onChange={(event) => update(row.id, 'ticker', event.target.value)}
                     maxLength={20}
-                    placeholder="e.g. AVWC"
+                    placeholder="e.g. QQQ"
                     autoCapitalize="characters"
                     spellCheck={false}
                     aria-invalid={!!fieldError(index, 'ticker')}
@@ -129,7 +137,7 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
                 </div>
                 <div className="field">
                   <label htmlFor={`allocation-${row.id}`}>
-                    Allocation (%) <span className="sr-only">{index + 1}</span>
+                    Weight (%) <span className="sr-only">{index + 1}</span>
                   </label>
                   <input
                     id={`allocation-${row.id}`}
@@ -149,6 +157,32 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
                   {fieldError(index, 'allocation') && (
                     <p className="error" id={`allocation-error-${row.id}`}>
                       {fieldError(index, 'allocation')}
+                    </p>
+                  )}
+                </div>
+                <div className="field">
+                  <label htmlFor={`average-price-${row.id}`}>
+                    Average price <span className="sr-only">{index + 1}</span>
+                  </label>
+                  <input
+                    id={`average-price-${row.id}`}
+                    type="number"
+                    inputMode="decimal"
+                    min="0.00000001"
+                    step="any"
+                    value={row.average_price}
+                    onChange={(event) => update(row.id, 'average_price', event.target.value)}
+                    placeholder="0.00"
+                    aria-invalid={!!fieldError(index, 'average_price')}
+                    aria-describedby={
+                      fieldError(index, 'average_price')
+                        ? `average-price-error-${row.id}`
+                        : undefined
+                    }
+                  />
+                  {fieldError(index, 'average_price') && (
+                    <p className="error" id={`average-price-error-${row.id}`}>
+                      {fieldError(index, 'average_price')}
                     </p>
                   )}
                 </div>
@@ -175,7 +209,7 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
             disabled={rows.length >= MAX_POSITIONS}
             onClick={() => {
               const id = nextId.current++;
-              setRows([...rows, { id, ticker: '', allocation: '' }]);
+              setRows([...rows, { id, ticker: '', allocation: '', average_price: '' }]);
               setError('');
               focusTicker(id);
             }}
@@ -183,7 +217,8 @@ export function PortfolioInput({ initialPositions, onAnalysed }: Props) {
             + Add position
           </button>
           <p className="small muted">
-            Up to {MAX_POSITIONS} unique assets. Use up to 2 decimal places for allocations.
+            Up to {MAX_POSITIONS} unique ETFs. Weight means current portfolio allocation; average
+            price should use the ETF listing currency.
           </p>
           <div className="allocation-summary" aria-live="polite">
             <span>Total allocation</span>

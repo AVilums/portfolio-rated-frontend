@@ -47,9 +47,11 @@ async function fillPosition(
   index: number,
   ticker: string,
   allocation: string,
+  averagePrice = '100',
 ) {
-  await user.type(screen.getByLabelText(`Asset symbol ${index}`), ticker);
-  await user.type(screen.getByLabelText(`Allocation (%) ${index}`), allocation);
+  await user.type(screen.getByLabelText(`ETF ticker ${index}`), ticker);
+  await user.type(screen.getByLabelText(`Weight (%) ${index}`), allocation);
+  await user.type(screen.getByLabelText(`Average price ${index}`), averagePrice);
 }
 
 describe('portfolio flow', () => {
@@ -96,9 +98,9 @@ describe('portfolio flow', () => {
     await user.click(screen.getByRole('button', { name: '+ Add position' }));
     await fillPosition(user, 2, 'AVWS', '40');
     await user.click(screen.getByRole('button', { name: 'Remove position 1' }));
-    expect(screen.getByLabelText('Asset symbol 1')).toHaveValue('AVWS');
-    expect(screen.getByLabelText('Allocation (%) 1')).toHaveValue(40);
-    await waitFor(() => expect(screen.getByLabelText('Asset symbol 1')).toHaveFocus());
+    expect(screen.getByLabelText('ETF ticker 1')).toHaveValue('AVWS');
+    expect(screen.getByLabelText('Weight (%) 1')).toHaveValue(40);
+    await waitFor(() => expect(screen.getByLabelText('ETF ticker 1')).toHaveFocus());
     expect(screen.getByRole('button', { name: 'Remove position 1' })).toBeDisabled();
   });
 
@@ -106,7 +108,7 @@ describe('portfolio flow', () => {
     const user = await login();
     await fillPosition(user, 1, 'AVWC', allocation);
     await user.click(screen.getByRole('button', { name: 'Analyse portfolio' }));
-    expect(screen.getByLabelText('Allocation (%) 1')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Weight (%) 1')).toHaveAttribute('aria-invalid', 'true');
     expect(portfolioApi.analysePortfolio).not.toHaveBeenCalled();
   });
 
@@ -121,8 +123,9 @@ describe('portfolio flow', () => {
   it('shows validation for blank fields and duplicate symbols', async () => {
     const user = await login();
     await user.click(screen.getByRole('button', { name: 'Analyse portfolio' }));
-    expect(screen.getByLabelText('Asset symbol 1')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByLabelText('Allocation (%) 1')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('ETF ticker 1')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Weight (%) 1')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Average price 1')).toHaveAttribute('aria-invalid', 'true');
     await fillPosition(user, 1, 'AVWC', '60');
     await user.click(screen.getByRole('button', { name: '+ Add position' }));
     await fillPosition(user, 2, 'avwc', '40');
@@ -132,16 +135,19 @@ describe('portfolio flow', () => {
 
   it('submits normalized inputs, shows a report, edits and signs out', async () => {
     const user = await login();
-    await fillPosition(user, 1, 'avwc', '60');
+    await fillPosition(user, 1, 'QQQ', '60', '500');
     await user.click(screen.getByRole('button', { name: '+ Add position' }));
-    await fillPosition(user, 2, 'AVWS', '40');
+    await fillPosition(user, 2, 'VTI', '40', '250');
     await user.click(screen.getByRole('button', { name: 'Analyse portfolio' }));
     expect(await screen.findByRole('heading', { name: 'Portfolio report' })).toHaveFocus();
     expect(portfolioApi.analysePortfolio).toHaveBeenCalledWith({ positions: report.positions });
     expect(screen.getByText('52')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'ETF data' })).toBeInTheDocument();
+    expect(screen.getByText('USD 600')).toBeInTheDocument();
+    expect(screen.getByText('+20%')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Edit portfolio' }));
-    expect(screen.getByLabelText('Asset symbol 1')).toHaveValue('AVWC');
-    expect(screen.getByLabelText('Allocation (%) 2')).toHaveValue(40);
+    expect(screen.getByLabelText('ETF ticker 1')).toHaveValue('QQQ');
+    expect(screen.getByLabelText('Weight (%) 2')).toHaveValue(40);
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(
       await screen.findByRole('heading', {
@@ -175,7 +181,7 @@ describe('portfolio flow', () => {
     const user = await login();
     for (let i = 1; i < 20; i++)
       await user.click(screen.getByRole('button', { name: '+ Add position' }));
-    expect(screen.getAllByRole('spinbutton')).toHaveLength(20);
+    expect(screen.getAllByRole('spinbutton')).toHaveLength(40);
     expect(screen.getByRole('button', { name: '+ Add position' })).toBeDisabled();
   });
 
@@ -194,7 +200,7 @@ describe('portfolio flow', () => {
     rejectRequest(new Error('private details'));
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to save the report');
     expect(screen.queryByText('private details')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Asset symbol 1')).toHaveValue('AVWC');
+    expect(screen.getByLabelText('ETF ticker 1')).toHaveValue('AVWC');
     await user.click(screen.getByRole('button', { name: 'Analyse portfolio' }));
     expect(await screen.findByRole('heading', { name: 'Portfolio report' })).toBeInTheDocument();
   });

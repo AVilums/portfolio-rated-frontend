@@ -5,13 +5,13 @@ import { AuthForm, type AuthView } from './features/auth/AuthForm';
 import { Home } from './features/home/Home';
 import { PortfolioInput } from './features/portfolio/PortfolioInput';
 import { PortfolioReport } from './features/portfolio/PortfolioReport';
-import type { PortfolioAnalysisResponse, PortfolioPosition } from './features/portfolio/types';
+import type { PortfolioAnalysisResponse, SavedPortfolioPosition } from './features/portfolio/types';
 import { AppLayout } from './components/AppLayout';
 import './App.css';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [positions, setPositions] = useState<PortfolioPosition[]>([]);
+  const [positions, setPositions] = useState<SavedPortfolioPosition[]>([]);
   const [report, setReport] = useState<PortfolioAnalysisResponse | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [reload, setReload] = useState(0);

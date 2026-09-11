@@ -10,8 +10,8 @@ export function Home({ onLogin, onSignUp }: HomeProps) {
         <p className="eyebrow">Portfolio clarity, in minutes</p>
         <h1 tabIndex={-1}>See how concentrated your portfolio really is.</h1>
         <p className="home-intro">
-          Add your holdings, get a clear allocation report, and keep each analysis saved to your
-          account.
+          Add ETF tickers, portfolio weights and average prices. See allocation, price and
+          underlying-holdings data in one saved report.
         </p>
         <div className="home-actions">
           <button className="primary" onClick={onSignUp}>
@@ -24,12 +24,12 @@ export function Home({ onLogin, onSignUp }: HomeProps) {
         <article>
           <span>01</span>
           <h2>Add your assets</h2>
-          <p>Enter each holding and its share of your portfolio.</p>
+          <p>Enter each ETF, its current portfolio weight and your average purchase price.</p>
         </article>
         <article>
           <span>02</span>
-          <h2>Review concentration</h2>
-          <p>See your largest allocation and effective number of positions.</p>
+          <h2>Review ETF data</h2>
+          <p>See concentration, price changes, fees and available underlying holdings.</p>
         </article>
         <article>
           <span>03</span>

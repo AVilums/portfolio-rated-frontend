@@ -18,14 +18,16 @@ test('sign in, save, refresh, edit and sign out', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
   const edit = page.getByRole('button', { name: 'Edit portfolio' });
   if (await edit.isVisible()) await edit.click();
-  while ((await page.getByRole('spinbutton').count()) > 1) {
+  while ((await page.getByRole('button', { name: /^Remove position/ }).count()) > 1) {
     await page.getByRole('button', { name: 'Remove position 2', exact: true }).click();
   }
-  await page.getByLabel('Asset symbol 1', { exact: true }).fill('AVWC');
-  await page.getByLabel('Allocation (%) 1', { exact: true }).fill('60');
+  await page.getByLabel('ETF ticker 1', { exact: true }).fill('QQQ');
+  await page.getByLabel('Weight (%) 1', { exact: true }).fill('60');
+  await page.getByLabel('Average price 1', { exact: true }).fill('500');
   await page.getByRole('button', { name: '+ Add position' }).click();
-  await page.getByLabel('Asset symbol 2', { exact: true }).fill('AVWS');
-  await page.getByLabel('Allocation (%) 2', { exact: true }).fill('40');
+  await page.getByLabel('ETF ticker 2', { exact: true }).fill('VTI');
+  await page.getByLabel('Weight (%) 2', { exact: true }).fill('40');
+  await page.getByLabel('Average price 2', { exact: true }).fill('250');
   await page.getByRole('button', { name: 'Analyse portfolio' }).click();
   await expect(page.getByRole('heading', { name: 'Portfolio report' })).toBeVisible();
   await expect(page.getByText('52', { exact: true })).toBeVisible();
@@ -33,7 +35,7 @@ test('sign in, save, refresh, edit and sign out', async ({ page }) => {
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Portfolio report' })).toBeVisible();
   await page.getByRole('button', { name: 'Edit portfolio' }).click();
-  await expect(page.getByLabel('Allocation (%) 1', { exact: true })).toHaveValue('60');
+  await expect(page.getByLabel('Weight (%) 1', { exact: true })).toHaveValue('60');
   expect(pageErrors).toEqual([]);
   await page.setViewportSize({ width: 375, height: 812 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
